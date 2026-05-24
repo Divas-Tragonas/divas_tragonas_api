@@ -1,0 +1,44 @@
+import Fastify from 'fastify';
+import { env } from './config/env';
+import { connectDb, disconnectDb } from './config/db';
+import { registerPlugins } from './plugins';
+import { healthRoutes } from './modules/health/health.routes';
+
+export function buildApp() {
+  const app = Fastify({
+    logger: {
+      level: env.LOG_LEVEL,
+    },
+  });
+
+  registerPlugins(app);
+  app.register(healthRoutes);
+
+  return app;
+}
+
+async function main() {
+  const app = buildApp();
+
+  await connectDb(app.log);
+
+  const shutdown = async () => {
+    app.log.info('Shutting down...');
+    await app.close();
+    await disconnectDb();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
+  await app.listen({ port: env.PORT, host: '0.0.0.0' });
+}
+
+// Guard against running when imported in tests
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

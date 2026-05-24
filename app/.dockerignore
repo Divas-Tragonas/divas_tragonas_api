@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.log
+tests/
+*.test.ts
+.eslintrc.cjs
+.prettierrc
+README.md
