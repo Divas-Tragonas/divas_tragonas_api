@@ -1,0 +1,26 @@
+services:
+  api:
+    image: node:20-alpine
+    container_name: myapi
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./app:/app
+    command: sh -c "npm install && npm start"
+    ports:
+      - "${PORT}:3000"
+    environment:
+      - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@db:27017/${MONGO_DB}?authSource=admin
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      - db
+
+  db:
+    image: mongo:7
+    container_name: myapi-db
+    restart: unless-stopped
+    volumes:
+      - ./db-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}

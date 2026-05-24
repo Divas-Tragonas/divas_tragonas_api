@@ -1,0 +1,17 @@
+# Secrets
+.env
+*.env.local
+
+# Runtime data
+db-data/
+node_modules/
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+logs/
