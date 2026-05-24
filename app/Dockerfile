@@ -1,7 +1,7 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9 --quiet
 
 WORKDIR /build
 
@@ -16,7 +16,7 @@ RUN pnpm build
 # Stage 2: Runtime
 FROM node:20-alpine AS runtime
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9 --quiet
 
 WORKDIR /app
 
