@@ -7,6 +7,8 @@ export default defineConfig({
       PORT: '3000',
       MONGO_URL: 'mongodb://localhost:27017/test',
       LOG_LEVEL: 'silent',
+      JWT_SECRET: 'test-secret-at-least-16-chars',
+      ADMIN_PASSWORD: 'test-password',
     },
   },
 });
