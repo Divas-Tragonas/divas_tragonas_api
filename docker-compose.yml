@@ -12,6 +12,8 @@ services:
       PORT: "3000"
       MONGO_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@db:27017/${MONGO_DB}?authSource=admin
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
       - db
     healthcheck:

@@ -2,7 +2,7 @@ import { EnemyModel } from './enemy.model';
 import type { CreateEnemy, UpdateEnemy, Enemy } from './enemy.schema';
 
 function toEnemy(doc: InstanceType<typeof EnemyModel>): Enemy {
-  return doc.toJSON() as Enemy;
+  return doc.toJSON() as unknown as Enemy;
 }
 
 export async function getAllEnemies(): Promise<Enemy[]> {
