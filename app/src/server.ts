@@ -1,10 +1,12 @@
 import Fastify from 'fastify';
+import websocket from '@fastify/websocket';
 import { env } from './config/env';
 import { connectDb, disconnectDb } from './config/db';
 import { registerPlugins } from './plugins';
 import { healthRoutes } from './modules/health/health.routes';
 import { enemyRoutes } from './modules/enemies/enemy.routes';
 import { authRoutes } from './modules/auth/auth.routes';
+import { syncRoutes } from './modules/sync/sync.routes';
 
 export function buildApp() {
   const app = Fastify({
@@ -14,9 +16,11 @@ export function buildApp() {
   });
 
   registerPlugins(app);
+  app.register(websocket);
   app.register(healthRoutes);
   app.register(authRoutes);
   app.register(enemyRoutes);
+  app.register(syncRoutes);
 
   return app;
 }
