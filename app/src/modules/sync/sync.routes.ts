@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { env } from '../../config/env';
 import { syncService } from './sync.service';
 
 // Message types that the DM sends and all clients should receive
@@ -16,7 +17,17 @@ const ROUTABLE_TO_DM = new Set(['TOKEN_MOVE', 'PLAYER_READY']);
 
 export async function syncRoutes(app: FastifyInstance): Promise<void> {
   app.get('/sync', { websocket: true }, (connection, req: FastifyRequest) => {
-    const role = (req.query as Record<string, string>)['role'] === 'dm' ? 'dm' : 'client';
+    const query = req.query as Record<string, string>;
+
+    // The API is exposed publicly through Tailscale Funnel; when SYNC_KEY is
+    // set, only connections carrying the matching ?key= are accepted.
+    if (env.SYNC_KEY && query['key'] !== env.SYNC_KEY) {
+      app.log.warn({ ip: req.ip }, 'sync connection rejected: invalid key');
+      connection.socket.close(4401, 'invalid key');
+      return;
+    }
+
+    const role = query['role'] === 'dm' ? 'dm' : 'client';
     const id = `${role}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     syncService.add(id, connection.socket, role);
