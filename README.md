@@ -44,26 +44,44 @@ The frontend on Vercel (`https://rpg-map-viewer.vercel.app`) is served over HTTP
 can only connect to the API via HTTPS/WSS. Tailscale Funnel terminates TLS on the server
 and proxies to port 3000.
 
+**This is live.** The API is currently exposed at:
+
+```
+https://macmini.tailc27b56.ts.net
+```
+
+Use it from the frontend as:
+
+- REST base: `https://macmini.tailc27b56.ts.net`
+- Sync WebSocket: `wss://macmini.tailc27b56.ts.net/sync?role=<dm|client>&key=<SYNC_KEY>`
+
+CORS is `origin: '*'`, so the Vercel origin is accepted without extra config.
+
+### How it was set up (reproduce on the server)
+
 ```bash
-# On the server (one time; persists across reboots)
+# 1. Set the shared key in .env, then redeploy so the container picks it up
+#    (generate a fresh one with: openssl rand -hex 16)
+echo 'SYNC_KEY=<your-key>' >> .env
+bash deploy.sh
+
+# 2. Enable Funnel on port 3000 (needs root; persists across reboots).
+#    Run once to avoid sudo next time: sudo tailscale set --operator=$USER
 sudo tailscale funnel --bg 3000
 
-# Check status / find the public URL
+# 3. Find the public URL
 tailscale funnel status
 ```
 
-If Funnel isn't enabled for the tailnet yet, the command prints a link to the admin
-console — open it and approve the `funnel` node attribute (one click).
+If Funnel isn't enabled for the tailnet yet, step 2 prints a link to the admin
+console — open it and approve the `funnel` node attribute (one click), then re-run.
 
-Because the API becomes publicly reachable, set `SYNC_KEY` in `.env` (see below) and
-restart the api container. Clients must then connect with:
+To turn public exposure back off: `sudo tailscale funnel --bg off`.
 
-```
-wss://<machine>.<tailnet>.ts.net/sync?role=client&key=<SYNC_KEY>
-```
-
-Connections with a missing or wrong key are closed with code `4401`. If `SYNC_KEY` is
-empty or unset, `/sync` stays open (LAN-only usage).
+The `SYNC_KEY` value itself lives in `.env` on the server (not committed). Clients that
+connect to `/sync` with a missing or wrong key are closed with code `4401`. If `SYNC_KEY`
+is empty or unset, `/sync` stays open (LAN-only usage) — but note that once a key is set,
+**every** client (including LAN/iPad DM clients) must send `?key=`.
 
 ## Environment variables
 
