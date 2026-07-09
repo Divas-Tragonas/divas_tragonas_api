@@ -38,6 +38,33 @@ cp .env.example .env   # then fill in real values
 docker compose up -d   # starts both api and db
 ```
 
+## Public HTTPS exposure (Tailscale Funnel)
+
+The frontend on Vercel (`https://rpg-map-viewer.vercel.app`) is served over HTTPS, so it
+can only connect to the API via HTTPS/WSS. Tailscale Funnel terminates TLS on the server
+and proxies to port 3000.
+
+```bash
+# On the server (one time; persists across reboots)
+sudo tailscale funnel --bg 3000
+
+# Check status / find the public URL
+tailscale funnel status
+```
+
+If Funnel isn't enabled for the tailnet yet, the command prints a link to the admin
+console — open it and approve the `funnel` node attribute (one click).
+
+Because the API becomes publicly reachable, set `SYNC_KEY` in `.env` (see below) and
+restart the api container. Clients must then connect with:
+
+```
+wss://<machine>.<tailnet>.ts.net/sync?role=client&key=<SYNC_KEY>
+```
+
+Connections with a missing or wrong key are closed with code `4401`. If `SYNC_KEY` is
+empty or unset, `/sync` stays open (LAN-only usage).
+
 ## Environment variables
 
 | Variable | Required | Default | Description |
@@ -46,6 +73,7 @@ docker compose up -d   # starts both api and db
 | `PORT` | no | `3000` | HTTP port the app binds to |
 | `MONGO_URL` | **yes** | — | Full MongoDB connection string |
 | `LOG_LEVEL` | no | `info` | `fatal/error/warn/info/debug/trace/silent` |
+| `SYNC_KEY` | no | — | Shared key for `/sync` (`?key=`). Empty = open access |
 | `MONGO_USER` | docker-compose only | — | Used to construct `MONGO_URL` in compose |
 | `MONGO_PASSWORD` | docker-compose only | — | Used to construct `MONGO_URL` in compose |
 | `MONGO_DB` | docker-compose only | — | Used to construct `MONGO_URL` in compose |

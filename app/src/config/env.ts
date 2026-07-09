@@ -10,6 +10,11 @@ const envSchema = z.object({
     .default('info'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   ADMIN_PASSWORD: z.string().min(1, 'ADMIN_PASSWORD is required'),
+  // Shared key required to connect to /sync when set. Empty/unset = open access (LAN use).
+  SYNC_KEY: z
+    .string()
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
 });
 
 const parsed = envSchema.safeParse(process.env);
