@@ -67,6 +67,20 @@ describe('/sync', () => {
     expect(JSON.parse(await received)).toEqual({ type: 'STATE', payload: { hp: 42 } });
   });
 
+  it('relays DM TOKEN_RELAY messages to all connected clients', async () => {
+    const client1 = await open('?role=client');
+    const client2 = await open('?role=client');
+    const dm = await open('?role=dm');
+
+    const received1 = nextMessage(client1);
+    const received2 = nextMessage(client2);
+    const message = { type: 'TOKEN_RELAY', id: 'pl_1', x: 100, y: 200 };
+    dm.send(JSON.stringify(message));
+
+    expect(JSON.parse(await received1)).toEqual(message);
+    expect(JSON.parse(await received2)).toEqual(message);
+  });
+
   it('relays client messages to the DM when no SYNC_KEY is set', async () => {
     const dm = await open('?role=dm');
     const client = await open('?role=client');
