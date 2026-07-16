@@ -10,6 +10,10 @@ const envSchema = z.object({
     .default('info'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   ADMIN_PASSWORD: z.string().min(1, 'ADMIN_PASSWORD is required'),
+  // Max accepted body size (bytes) for saved-session uploads. Saved game state
+  // carries base64 images and can reach tens of MB, so this defaults far above
+  // Fastify's 1MB default. Payloads larger than this are rejected with 413.
+  MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(80 * 1024 * 1024),
   // Shared key required to connect to /sync when set. Empty/unset = open access (LAN use).
   SYNC_KEY: z
     .string()

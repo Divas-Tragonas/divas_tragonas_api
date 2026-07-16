@@ -91,6 +91,7 @@ is empty or unset, `/sync` stays open (LAN-only usage) — but note that once a 
 | `PORT` | no | `3000` | HTTP port the app binds to |
 | `MONGO_URL` | **yes** | — | Full MongoDB connection string |
 | `LOG_LEVEL` | no | `info` | `fatal/error/warn/info/debug/trace/silent` |
+| `MAX_UPLOAD_BYTES` | no | `83886080` (80MB) | Max body size for saving a game session (`POST`/`PUT /sessions`) |
 | `SYNC_KEY` | no | — | Shared key for `/sync` (`?key=`). Empty = open access |
 | `MONGO_USER` | docker-compose only | — | Used to construct `MONGO_URL` in compose |
 | `MONGO_PASSWORD` | docker-compose only | — | Used to construct `MONGO_URL` in compose |
