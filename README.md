@@ -83,6 +83,38 @@ connect to `/sync` with a missing or wrong key are closed with code `4401`. If `
 is empty or unset, `/sync` stays open (LAN-only usage) — but note that once a key is set,
 **every** client (including LAN/iPad DM clients) must send `?key=`.
 
+## API: saved game sessions (`/sessions`)
+
+Every `/sessions` route requires the back-office admin token:
+`Authorization: Bearer <token>` from `POST /auth/login` (`{ "password": "<ADMIN_PASSWORD>" }`).
+A missing or invalid token returns `401`.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/sessions` | — | `200` — list of `{ id, name, createdAt, updatedAt, sizeBytes }`, newest first, **without** `data` |
+| `GET` | `/sessions/:id` | — | `200` — the full session, `data` included |
+| `POST` | `/sessions` | `{ name, data }` | `201` — the created session |
+| `PUT` | `/sessions/:id` | `{ name?, data? }` | `200` — the updated session (at least one field required) |
+| `DELETE` | `/sessions/:id` | — | `204` — no content |
+
+Errors: `400` invalid body, `401` missing/invalid token, `404` unknown id,
+`413` payload over `MAX_UPLOAD_BYTES`.
+
+`data` is an **opaque JSON blob** — the whole serialized game state. The API never
+validates or inspects its contents, so the frontend can change its shape freely;
+it only checks that `data` is an object. `sizeBytes` is the byte length of the
+serialized `data`, computed at write time so listing stays cheap.
+
+Because saved state carries base64 images (and even video) and routinely runs to
+tens of MB, `data` is **not stored inline** in the Mongo document — it lives in
+GridFS, which is what lets a single session exceed Mongo's 16MB BSON document
+limit. The document keeps only `name`, `sizeBytes` and an internal file pointer.
+The `POST`/`PUT` body limit is raised to `MAX_UPLOAD_BYTES` (80MB by default);
+anything larger is rejected with `413`.
+
+CORS allows `GET, POST, PUT, DELETE, OPTIONS` from any origin, so the Vercel
+frontend can call these directly.
+
 ## Environment variables
 
 | Variable | Required | Default | Description |
@@ -111,11 +143,15 @@ The app validates all required vars at startup and exits with an error if any ar
 │   │   │   ├── env.ts          # zod-validated env
 │   │   │   └── db.ts           # mongoose connection + retry
 │   │   ├── modules/
-│   │   │   └── health/         # GET /health, GET /health/ready
-│   │   ├── plugins/            # cors, helmet
+│   │   │   ├── health/         # GET /health, GET /health/ready
+│   │   │   ├── auth/           # POST /auth/login -> admin JWT
+│   │   │   ├── enemies/        # CRUD /enemies
+│   │   │   ├── sessions/       # CRUD /sessions (saved games, blob in GridFS)
+│   │   │   └── sync/           # WebSocket /sync (DM <-> clients relay)
+│   │   ├── plugins/            # cors, helmet, jwt
 │   │   ├── lib/                # shared utilities
 │   │   └── types/              # shared TS types
-│   ├── tests/
+│   ├── tests/                  # vitest; *.integration.test.ts needs a real Mongo
 │   │   └── health.test.ts
 │   ├── Dockerfile
 │   ├── package.json

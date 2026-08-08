@@ -140,6 +140,30 @@ describe('/sessions', () => {
     expect(res.statusCode).toBe(201);
   });
 
+  it('POST /sessions returns 413 when the payload exceeds MAX_UPLOAD_BYTES', async () => {
+    // MAX_UPLOAD_BYTES is 24MB under test (see vitest.config.ts), so a ~25MB
+    // body must be rejected by the parser rather than reaching the handler.
+    const tooBig = 'x'.repeat(25 * 1024 * 1024);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/sessions',
+      payload: { name: 'Massa gran', data: { image: tooBig } },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(413);
+  });
+
+  it('PUT /sessions/:id returns 413 when the payload exceeds MAX_UPLOAD_BYTES', async () => {
+    const tooBig = 'x'.repeat(25 * 1024 * 1024);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/sessions/${mockMeta.id}`,
+      payload: { name: 'Massa gran', data: { image: tooBig } },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(413);
+  });
+
   it('PUT /sessions/:id returns 200 and overwrites', async () => {
     const res = await app.inject({
       method: 'PUT',

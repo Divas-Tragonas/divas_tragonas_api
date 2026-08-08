@@ -8,6 +8,20 @@ jobs:
   lint-and-test:
     runs-on: ubuntu-latest
 
+    # The sessions module stores its data blob in GridFS, which the mocked route
+    # tests cannot exercise. A real Mongo lets sessions.integration.test.ts run
+    # here; without one it skips itself.
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 

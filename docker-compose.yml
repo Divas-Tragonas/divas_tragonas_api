@@ -14,6 +14,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-83886080}
       SYNC_KEY: ${SYNC_KEY:-}
     depends_on:
       - db
