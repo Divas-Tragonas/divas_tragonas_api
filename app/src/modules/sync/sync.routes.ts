@@ -13,7 +13,9 @@ const ROUTABLE_TO_CLIENTS = new Set([
 ]);
 
 // Message types that clients send and only the DM should receive
-const ROUTABLE_TO_DM = new Set(['TOKEN_MOVE', 'PLAYER_READY']);
+// VIEWPORT: each player screen reports its size so the DM knows how many are
+// connected and how much map they see outside his framing
+const ROUTABLE_TO_DM = new Set(['TOKEN_MOVE', 'PLAYER_READY', 'VIEWPORT']);
 
 export async function syncRoutes(app: FastifyInstance): Promise<void> {
   app.get('/sync', { websocket: true }, (connection, req: FastifyRequest) => {

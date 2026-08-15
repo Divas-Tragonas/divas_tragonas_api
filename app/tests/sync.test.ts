@@ -91,6 +91,17 @@ describe('/sync', () => {
     expect(JSON.parse(await received)).toEqual({ type: 'TOKEN_MOVE', id: 'goblin' });
   });
 
+  it('relays client VIEWPORT messages to the DM', async () => {
+    const dm = await open('?role=dm');
+    const client = await open('?role=client');
+
+    const received = nextMessage(dm);
+    const message = { type: 'VIEWPORT', id: 'pl_1', w: 1920, h: 1080 };
+    client.send(JSON.stringify(message));
+
+    expect(JSON.parse(await received)).toEqual(message);
+  });
+
   it('closes with 4401 when SYNC_KEY is set and no key is provided', async () => {
     env.SYNC_KEY = 'test-sync-key';
     const ws = await open('?role=client');
