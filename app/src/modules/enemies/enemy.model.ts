@@ -8,6 +8,10 @@ const enemySchema = new Schema(
     R: { type: Number, required: true },
     sm: { type: Number, required: true },
     imageData: { type: String },
+    // Free-text grouping for the back office; '' means "no project/category".
+    // Mongoose applies the default when hydrating older documents too.
+    project: { type: String, default: '' },
+    category: { type: String, default: '' },
   },
   {
     versionKey: false,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../src/server';
+import { EnemyModel } from '../src/modules/enemies/enemy.model';
 
 vi.mock('../src/config/db', () => ({
   connectDb: vi.fn(),
@@ -14,6 +15,8 @@ const mockEnemy = {
   hpMax: 10,
   R: 20,
   sm: 1.0,
+  project: 'La cripta',
+  category: 'Morts vivents',
 };
 
 vi.mock('../src/modules/enemies/enemy.service', () => ({
@@ -63,6 +66,46 @@ describe('/enemies', () => {
     expect(res.json().id).toBeDefined();
   });
 
+  it('POST /enemies accepts project and category', async () => {
+    const body = {
+      name: 'Esquelet',
+      color: '#cccccc',
+      hpMax: 8,
+      R: 20,
+      sm: 1.0,
+      project: 'La cripta',
+      category: 'Morts vivents',
+    };
+    const res = await app.inject({
+      method: 'POST',
+      url: '/enemies',
+      payload: body,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().project).toBe('La cripta');
+    expect(res.json().category).toBe('Morts vivents');
+  });
+
+  it('POST /enemies returns 400 when category exceeds 60 characters', async () => {
+    const body = {
+      name: 'Goblin',
+      color: '#3a8a3a',
+      hpMax: 10,
+      R: 20,
+      sm: 1.0,
+      category: 'x'.repeat(61),
+    };
+    const res = await app.inject({
+      method: 'POST',
+      url: '/enemies',
+      payload: body,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBeDefined();
+  });
+
   it('POST /enemies returns 400 for invalid body', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -83,6 +126,37 @@ describe('/enemies', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().name).toBe('Orc');
+  });
+
+  it('PUT /enemies/:id clears category with an empty string', async () => {
+    const { updateEnemy } = await import('../src/modules/enemies/enemy.service');
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/enemies/${mockEnemy.id}`,
+      payload: { category: '' },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().category).toBe('');
+    expect(vi.mocked(updateEnemy)).toHaveBeenLastCalledWith(mockEnemy.id, { category: '' });
+  });
+
+  it('PUT /enemies/:id without project/category does not touch them', async () => {
+    const { updateEnemy } = await import('../src/modules/enemies/enemy.service');
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/enemies/${mockEnemy.id}`,
+      payload: { hpMax: 12 },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const data = vi.mocked(updateEnemy).mock.lastCall?.[1];
+    expect(data).not.toHaveProperty('project');
+    expect(data).not.toHaveProperty('category');
+    expect(res.json().project).toBe('La cripta');
+    expect(res.json().category).toBe('Morts vivents');
   });
 
   it('PUT /enemies/:id returns 404 when not found', async () => {
@@ -117,5 +191,19 @@ describe('/enemies', () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('EnemyModel', () => {
+  it('serializes legacy documents without project/category as empty strings', () => {
+    const legacy = EnemyModel.hydrate({
+      _id: '507f1f77bcf86cd799439011',
+      name: 'Goblin',
+      color: '#3a8a3a',
+      hpMax: 10,
+      R: 20,
+      sm: 1.0,
+    });
+    expect(legacy.toJSON()).toMatchObject({ project: '', category: '' });
   });
 });
