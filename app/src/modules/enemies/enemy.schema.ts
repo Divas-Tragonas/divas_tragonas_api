@@ -10,15 +10,17 @@ export const enemySchema = z.object({
   imageData: z.string().optional(),
   project: z.string().trim().max(60).optional().default(''),
   category: z.string().trim().max(60).optional().default(''),
+  xp: z.number().int().min(0).optional().default(0),
 });
 
 export const createEnemySchema = enemySchema.omit({ id: true });
 
-// No defaults on update: a PUT that omits project/category must leave them
-// untouched instead of resetting them to ''.
+// No defaults on update: a PUT that omits project/category/xp must leave them
+// untouched instead of resetting them to ''/0.
 export const updateEnemySchema = createEnemySchema.partial().extend({
   project: z.string().trim().max(60).optional(),
   category: z.string().trim().max(60).optional(),
+  xp: z.number().int().min(0).optional(),
 });
 
 export type Enemy = z.infer<typeof enemySchema>;

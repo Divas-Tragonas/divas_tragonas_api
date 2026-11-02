@@ -206,4 +206,84 @@ describe('EnemyModel', () => {
     });
     expect(legacy.toJSON()).toMatchObject({ project: '', category: '' });
   });
+
+  it('serializes legacy documents without xp as 0', () => {
+    const legacy = EnemyModel.hydrate({
+      _id: '507f1f77bcf86cd799439011',
+      name: 'Goblin',
+      color: '#3a8a3a',
+      hpMax: 10,
+      R: 20,
+      sm: 1.0,
+    });
+    expect(legacy.toJSON()).toMatchObject({ xp: 0 });
+  });
+});
+
+describe('/enemies xp', () => {
+  const app = buildApp();
+  let token: string;
+
+  beforeAll(async () => {
+    await app.ready();
+    token = app.jwt.sign({ role: 'admin' });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  const base = { name: 'Goblin', color: '#3a8a3a', hpMax: 10, R: 20, sm: 1.0 };
+
+  it('POST /enemies defaults xp to 0', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/enemies',
+      payload: base,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().xp).toBe(0);
+  });
+
+  it('POST /enemies accepts xp', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/enemies',
+      payload: { ...base, xp: 50 },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().xp).toBe(50);
+  });
+
+  it.each([-1, 2.5, '50'])('POST /enemies rejects xp = %s', async (xp) => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/enemies',
+      payload: { ...base, xp },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT /enemies/:id only touches xp when it is in the body', async () => {
+    const { updateEnemy } = await import('../src/modules/enemies/enemy.service');
+
+    await app.inject({
+      method: 'PUT',
+      url: `/enemies/${mockEnemy.id}`,
+      payload: { hpMax: 12 },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(vi.mocked(updateEnemy).mock.lastCall?.[1]).not.toHaveProperty('xp');
+
+    await app.inject({
+      method: 'PUT',
+      url: `/enemies/${mockEnemy.id}`,
+      payload: { xp: 200 },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(vi.mocked(updateEnemy)).toHaveBeenLastCalledWith(mockEnemy.id, { xp: 200 });
+  });
 });

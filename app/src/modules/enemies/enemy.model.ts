@@ -12,6 +12,8 @@ const enemySchema = new Schema(
     // Mongoose applies the default when hydrating older documents too.
     project: { type: String, default: '' },
     category: { type: String, default: '' },
+    // XP granted when the enemy is defeated. 0 on documents saved before it existed.
+    xp: { type: Number, default: 0 },
   },
   {
     versionKey: false,

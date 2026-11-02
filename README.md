@@ -115,6 +115,52 @@ anything larger is rejected with `413`.
 CORS allows `GET, POST, PUT, DELETE, OPTIONS` from any origin, so the Vercel
 frontend can call these directly.
 
+## API: character sheets and experience (`/characters`)
+
+Every `/characters` route requires the back-office admin token, like `/enemies` and
+`/sessions` (`Authorization: Bearer <token>`); a missing or invalid token returns `401`.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/characters` | — | `200` — every character, sorted by name, **without** `xpLog` |
+| `GET` | `/characters/:id` | — | `200` — the character, `xpLog` included |
+| `POST` | `/characters` | character fields (no `id`/`xp`/`xpLog`) | `201` — the created character |
+| `PUT` | `/characters/:id` | partial fields (no `xp`/`xpLog`), at least one | `200` — the updated character |
+| `DELETE` | `/characters/:id` | — | `204` |
+| `POST` | `/characters/:id/xp` | `{ amount, reason?, source?, awardId? }` | `200` — the character, `xpLog` included |
+| `POST` | `/characters/xp` | `{ awards: [{ id, amount }], reason?, source?, awardId? }` | `200` — the characters, in request order |
+
+Errors: `400 { error }` invalid body, `401` missing/invalid token, `404 { error }` unknown id.
+
+Fields (defaults in brackets): `name` (required, 1–80), `player`, `race`, `className`
+(≤60, `''`), `level` (int 1–20, `1`), `xp` (int ≥0, `0`), `hpMax` (int ≥1, `1`), `ac`
+(int ≥0, `10`), `speed` (feet, int ≥0, `30`), `passivePerception` (int ≥0, `10`),
+`portrait` (dataURL or `''`, ≤1MB), `notionUrl` (`''`), `sheet` (opaque object, `{}`,
+≤512KB), `xpLog`, `createdAt`, `updatedAt`. Responses use `id`, never `_id`.
+
+- `sheet` is an **opaque JSON object** (abilities, saves, skills, attacks, spells, gear,
+  traits, background…). Like `Session.data`, the API only checks that it is an object
+  and its size, never its contents.
+- `xp` and `xpLog` are **only** changed by the XP endpoints; sending them to `POST`/`PUT`
+  is a `400`.
+- **XP award** (`amount`: non-zero int, −100000..100000; `reason` ≤120, `source` ≤60,
+  `awardId` ≤64): one atomic single-document update. `xp` is clamped at 0 and the log
+  entry `{ amount, reason, source, awardId, at }` records the amount actually applied
+  (−500 on a character with 200 xp logs −200), so the log adds up to `xp`. Only the
+  newest 200 entries are kept.
+- **Idempotency**: if `awardId` is already in the character's `xpLog`, nothing is added
+  and the character is returned unchanged, so the frontend can safely retry. (The guard
+  covers the 200 entries kept in the log.)
+- **Batch** (`POST /characters/xp`, 1–20 awards, each id at most once): the same award
+  per character, sharing `reason`/`source`/`awardId`. Every id is checked first; if one
+  does not exist the answer is `404` and nothing is applied.
+- The API does **not** compute `level`: it stores what it gets (the frontend proposes
+  the level-up from the 5e table and the DM confirms it with `PUT { level }`).
+
+`/enemies` also carries `xp` (int ≥0, default `0`, also on older documents): the XP the
+enemy grants when defeated. `POST` accepts it optionally; `PUT` only changes it when it
+is in the body.
+
 ## Environment variables
 
 | Variable | Required | Default | Description |
@@ -146,6 +192,7 @@ The app validates all required vars at startup and exits with an error if any ar
 │   │   │   ├── health/         # GET /health, GET /health/ready
 │   │   │   ├── auth/           # POST /auth/login -> admin JWT
 │   │   │   ├── enemies/        # CRUD /enemies
+│   │   │   ├── characters/     # CRUD /characters + XP awards
 │   │   │   ├── sessions/       # CRUD /sessions (saved games, blob in GridFS)
 │   │   │   └── sync/           # WebSocket /sync (DM <-> clients relay)
 │   │   ├── plugins/            # cors, helmet, jwt
