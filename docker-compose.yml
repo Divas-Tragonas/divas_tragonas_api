@@ -19,7 +19,9 @@ services:
     depends_on:
       - db
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      # 127.0.0.1, not localhost: busybox wget tries ::1 first and the server
+      # only binds IPv4 (0.0.0.0), so `localhost` always got Connection refused.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
