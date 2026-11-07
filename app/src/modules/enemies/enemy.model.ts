@@ -1,4 +1,7 @@
 import { Schema, model } from 'mongoose';
+import { DAMAGE_TYPES } from './damage-types';
+
+const damageTypeList = { type: [{ type: String, enum: DAMAGE_TYPES }], default: [] };
 
 const enemySchema = new Schema(
   {
@@ -14,6 +17,13 @@ const enemySchema = new Schema(
     category: { type: String, default: '' },
     // XP granted when the enemy is defeated. 0 on documents saved before it existed.
     xp: { type: Number, default: 0 },
+    // Melee reach in feet. Defaults to 5 for documents saved before it existed.
+    reachFt: { type: Number, default: 5 },
+    resistances: damageTypeList,
+    vulnerabilities: damageTypeList,
+    immunities: damageTypeList,
+    // Types the enemy resists only when the attack is NOT magical.
+    nonMagicResistances: damageTypeList,
   },
   {
     versionKey: false,

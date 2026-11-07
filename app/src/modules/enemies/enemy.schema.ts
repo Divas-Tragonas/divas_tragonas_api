@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { DAMAGE_TYPES } from './damage-types';
+
+const damageTypeEnum = z.enum(DAMAGE_TYPES);
 
 export const enemySchema = z.object({
   id: z.string(),
@@ -11,6 +14,11 @@ export const enemySchema = z.object({
   project: z.string().trim().max(60).optional().default(''),
   category: z.string().trim().max(60).optional().default(''),
   xp: z.number().int().min(0).optional().default(0),
+  reachFt: z.number().int().min(0).max(300).optional().default(5),
+  resistances: z.array(damageTypeEnum).optional().default([]),
+  vulnerabilities: z.array(damageTypeEnum).optional().default([]),
+  immunities: z.array(damageTypeEnum).optional().default([]),
+  nonMagicResistances: z.array(damageTypeEnum).optional().default([]),
 });
 
 export const createEnemySchema = enemySchema.omit({ id: true });
@@ -21,6 +29,11 @@ export const updateEnemySchema = createEnemySchema.partial().extend({
   project: z.string().trim().max(60).optional(),
   category: z.string().trim().max(60).optional(),
   xp: z.number().int().min(0).optional(),
+  reachFt: z.number().int().min(0).max(300).optional(),
+  resistances: z.array(damageTypeEnum).optional(),
+  vulnerabilities: z.array(damageTypeEnum).optional(),
+  immunities: z.array(damageTypeEnum).optional(),
+  nonMagicResistances: z.array(damageTypeEnum).optional(),
 });
 
 export type Enemy = z.infer<typeof enemySchema>;
