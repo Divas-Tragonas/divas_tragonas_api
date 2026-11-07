@@ -286,4 +286,57 @@ describe('/enemies xp', () => {
     });
     expect(vi.mocked(updateEnemy)).toHaveBeenLastCalledWith(mockEnemy.id, { xp: 200 });
   });
+
+  describe('5e stat block', () => {
+    const base = { name: 'Goblin', color: '#3a8a3a', hpMax: 10, R: 20, sm: 1.0 };
+    const post = (extra: object) =>
+      app.inject({
+        method: 'POST',
+        url: '/enemies',
+        headers: { Authorization: `Bearer ${token}` },
+        payload: { ...base, ...extra },
+      });
+
+    it('POST accepts a full stat block and applies defaults', async () => {
+      const res = await post({
+        cr: '1/4',
+        ac: 15,
+        speedFt: 30,
+        move: 'vol 60',
+        abilities: { str: 8, dex: 14, con: 10, int: 10, wis: 8, cha: 8 },
+        saves: { dex: 4 },
+        attacks: [{ name: 'Scimitar', kind: 'melee', reachFt: 5, bonus: '+4', damage: '1d6+2' }],
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.json().traits).toEqual([]);
+      expect(res.json().conditionImmunities).toEqual([]);
+      expect(res.json().nonMagicImmunities).toEqual([]);
+    });
+
+    it.each([
+      ['cr', { cr: '31' }],
+      ['ac', { ac: 41 }],
+      ['speedFt', { speedFt: 201 }],
+      ['ability', { abilities: { str: 31, dex: 1, con: 1, int: 1, wis: 1, cha: 1 } }],
+      ['save', { saves: { str: -6 } }],
+      ['condition', { conditionImmunities: ['sleepy'] }],
+      ['damage type', { nonMagicImmunities: ['sonic'] }],
+      ['attack kind', { attacks: [{ name: 'x', kind: 'melee2' }] }],
+      ['trait length', { traits: ['x'.repeat(301)] }],
+    ])('POST rejects invalid %s', async (_n, extra) => {
+      expect((await post(extra)).statusCode).toBe(400);
+    });
+
+    it('PUT does not add defaults for omitted stat block fields', async () => {
+      const res = await app.inject({
+        method: 'PUT',
+        url: `/enemies/${mockEnemy.id}`,
+        headers: { Authorization: `Bearer ${token}` },
+        payload: { name: 'Renamed' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().traits).toBeUndefined();
+      expect(res.json().cr).toBeUndefined();
+    });
+  });
 });

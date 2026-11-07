@@ -1,7 +1,29 @@
 import { Schema, model } from 'mongoose';
 import { DAMAGE_TYPES } from './damage-types';
+import { CONDITION_IDS, CR_VALUES } from './condition-ids';
 
 const damageTypeList = { type: [{ type: String, enum: DAMAGE_TYPES }], default: [] };
+
+const intField = (min: number, max: number) => ({
+  type: Number,
+  min,
+  max,
+  validate: Number.isInteger,
+});
+
+const attackSchema = new Schema(
+  {
+    name: { type: String, required: true, minlength: 1, maxlength: 80 },
+    kind: { type: String, required: true, enum: ['melee', 'ranged', 'thrown'] },
+    reachFt: intField(0, 300),
+    rangeFt: intField(0, 2000),
+    longFt: intField(0, 2000),
+    bonus: { type: String, maxlength: 10 },
+    damage: { type: String, maxlength: 40 },
+    damageType: { type: String, enum: DAMAGE_TYPES },
+  },
+  { _id: false },
+);
 
 const enemySchema = new Schema(
   {
@@ -24,6 +46,32 @@ const enemySchema = new Schema(
     immunities: damageTypeList,
     // Types the enemy resists only when the attack is NOT magical.
     nonMagicResistances: damageTypeList,
+    // 5e stat block. Challenge rating ('' = unset).
+    cr: { type: String, enum: ['', ...CR_VALUES], default: '' },
+    ac: intField(0, 40),
+    speedFt: intField(0, 200),
+    move: { type: String, maxlength: 80 },
+    abilities: {
+      str: intField(1, 30),
+      dex: intField(1, 30),
+      con: intField(1, 30),
+      int: intField(1, 30),
+      wis: intField(1, 30),
+      cha: intField(1, 30),
+    },
+    saves: {
+      str: intField(-5, 20),
+      dex: intField(-5, 20),
+      con: intField(-5, 20),
+      int: intField(-5, 20),
+      wis: intField(-5, 20),
+      cha: intField(-5, 20),
+    },
+    // Immune to damage from non-magical attacks of these types.
+    nonMagicImmunities: damageTypeList,
+    conditionImmunities: { type: [{ type: String, enum: CONDITION_IDS }], default: [] },
+    attacks: { type: [attackSchema], default: [] },
+    traits: { type: [{ type: String, maxlength: 300 }], default: [] },
   },
   {
     versionKey: false,
